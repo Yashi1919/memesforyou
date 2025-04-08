@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Meme Videos</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .form, .section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; border-radius: 5px; }
+        .hidden { display: none; }
+        input, button { margin: 5px 0; padding: 8px; width: 100%; box-sizing: border-box; }
+        button { background-color: #4CAF50; color: white; border: none; cursor: pointer; }
+        button:hover { background-color: #45a049; }
+        .video-list { list-style: none; padding: 0; }
+        .video-item { margin: 10px 0; padding: 10px; border: 1px solid #ddd; border-radius: 3px; }
+        .error { color: red; }
+        .success { color: green; }
+    </style>
+</head>
+<body>
+    <h1>Meme Videos</h1>
+
+    <div id="auth" class="form">
+        <div id="signupForm">
+            <h2>Register</h2>
+            <input type="email" id="signupEmail" placeholder="Email" required><br>
+            <input type="password" id="signupPassword" placeholder="Password (min 6 chars)" required><br>
+            <button onclick="signup()">Sign Up</button>
+            <p>Already have an account? <a href="#" onclick="showLogin()">Login here</a></p>
+        </div>
+        <div id="loginForm" class="hidden">
+            <h2>Login</h2>
+            <input type="email" id="loginEmail" placeholder="Email" required><br>
+            <input type="password" id="loginPassword" placeholder="Password" required><br>
+            <button onclick="login()">Login</button>
+            <p>No account? <a href="#" onclick="showSignup()">Sign up here</a></p>
+        </div>
+    </div>
+
+    <div id="app" class="section hidden">
+        <button onclick="logout()">Logout</button>
+        <div id="upload" class="form">
+            <h2>Upload Video</h2>
+            <input type="text" id="movieName" placeholder="Movie Name" required><br>
+            <input type="text" id="tags" placeholder="Tags (e.g., funny,action)"><br>
+            <input type="file" id="video" accept="video/mp4" required><br>
+            <button onclick="upload()">Upload Video</button>
+        </div>
+
+        <div id="search" class="form">
+            <h2>Search Videos</h2>
+            <input type="text" id="searchQuery" placeholder="Movie Name or Tag"><br>
+            <button onclick="search()">Search</button>
+        </div>
+
+        <div id="videos" class="section">
+            <h2>Your Videos</h2>
+            <ul id="videoList" class="video-list"></ul>
+        </div>
+    </div>
+
+    <p id="response"></p>
+
+    <script>
+        let token = '';
+
+        async function signup() {
+            const email = document.getElementById('signupEmail').value;
+            const password = document.getElementById('signupPassword').value;
+            try {
+                const res = await fetch('http://localhost:5000/api/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                const data = await res.json();
+                handleResponse(res, data, 'Signed up and logged in!');
+            } catch (error) {
+                showError('Signup failed: ' + error.message);
+            }
+        }
+
+        async function login() {
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            try {
+                const res = await fetch('http://localhost:5000/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                const data = await res.json();
+                handleResponse(res, data, 'Logged in!');
+            } catch (error) {
+                showError('Login failed: ' + error.message);
+            }
+        }
+
+        async function logout() {
+            try {
+                const res = await fetch('http://localhost:5000/api/auth/logout', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    token = '';
+                    document.getElementById('app').classList.add('hidden');
+                    document.getElementById('auth').classList.remove('hidden');
+                    showSuccess(data.msg);
+                } else {
+                    showError(data.msg);
+                }
+            } catch (error) {
+                showError('Logout failed: ' + error.message);
+            }
+        }
+
+        async function upload() {
+            const movieName = document.getElementById('movieName').value;
+            const tags = document.getElementById('tags').value;
+            const video = document.getElementById('video').files[0];
+            const formData = new FormData();
+            formData.append('movieName', movieName);
+            formData.append('tags', tags);
+            formData.append('video', video);
+
+            try {
+                const res = await fetch('http://localhost:5000/api/memes/upload', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    body: formData
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    showSuccess('Video uploaded!');
+                    fetchUserVideos(); // Refresh video list
+                } else {
+                    showError(data.msg);
+                }
+            } catch (error) {
+                showError('Upload failed: ' + error.message);
+            }
+        }
+
+        async function search() {
+            const query = document.getElementById('searchQuery').value;
+            try {
+                const res = await fetch(`http://localhost:5000/api/memes/search?movieName=${query}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const videos = await res.json();
+                if (res.ok) {
+                    displayVideos(videos);
+                } else {
+                    showError(videos.msg);
+                }
+            } catch (error) {
+                showError('Search failed: ' + error.message);
+            }
+        }
+
+        async function fetchUserVideos() {
+            try {
+                const res = await fetch('http://localhost:5000/api/users/me', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    displayVideos(data.videos);
+                } else {
+                    showError(data.msg);
+                }
+            } catch (error) {
+                showError('Failed to fetch videos: ' + error.message);
+            }
+        }
+
+        function handleResponse(res, data, successMsg) {
+            if (res.ok) {
+                token = data.token;
+                document.getElementById('auth').classList.add('hidden');
+                document.getElementById('app').classList.remove('hidden');
+                showSuccess(successMsg);
+                fetchUserVideos(); // Load user's videos on login/signup
+            } else {
+                showError(data.msg || 'Request failed');
+            }
+        }
+
+        function displayVideos(videos) {
+            const list = document.getElementById('videoList');
+            list.innerHTML = '';
+            videos.forEach(video => {
+                const li = document.createElement('li');
+                li.className = 'video-item';
+                li.innerHTML = `
+                    <strong>${video.movieName}</strong> (Tags: ${video.tags.join(', ')})<br>
+                    <a href="/uploads/${video.filePath.split('/')[1]}" download>Download</a> |
+                    <button onclick="likeVideo('${video._id}')">Like (${video.likes.length})</button> |
+                    <input type="text" id="comment-${video._id}" placeholder="Add comment">
+                    <button onclick="commentVideo('${video._id}')">Comment</button>
+                `;
+                list.appendChild(li);
+            });
+        }
+
+        async function likeVideo(videoId) {
+            try {
+                const res = await fetch(`http://localhost:5000/api/memes/${videoId}/like`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    fetchUserVideos(); // Refresh list
+                } else {
+                    showError(data.msg);
+                }
+            } catch (error) {
+                showError('Like failed: ' + error.message);
+            }
+        }
+
+        async function commentVideo(videoId) {
+            const text = document.getElementById(`comment-${videoId}`).value;
+            try {
+                const res = await fetch(`http://localhost:5000/api/memes/${videoId}/comment`, {
+                    method: 'POST',
+                    headers: { 
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ text })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    showSuccess('Comment added!');
+                    fetchUserVideos();
+                } else {
+                    showError(data.msg);
+                }
+            } catch (error) {
+                showError('Comment failed: ' + error.message);
+            }
+        }
+
+        function showSuccess(msg) {
+            const p = document.getElementById('response');
+            p.textContent = msg;
+            p.className = 'success';
+        }
+
+        function showError(msg) {
+            const p = document.getElementById('response');
+            p.textContent = msg;
+            p.className = 'error';
+        }
+
+        function showLogin() {
+            document.getElementById('signupForm').classList.add('hidden');
+            document.getElementById('loginForm').classList.remove('hidden');
+        }
+
+        function showSignup() {
+            document.getElementById('loginForm').classList.add('hidden');
+            document.getElementById('signupForm').classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
