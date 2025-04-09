@@ -133,7 +133,7 @@
                 const data = await res.json();
                 if (res.ok) {
                     showSuccess('Video uploaded!');
-                    fetchUserVideos(); // Refresh video list
+                    fetchUserVideos();
                 } else {
                     showError(data.msg);
                 }
@@ -175,13 +175,38 @@
             }
         }
 
+        async function downloadVideo(videoId, movieName) {
+            try {
+                const res = await fetch(`http://localhost:5000/api/memes/download/${videoId}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    const blob = await res.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `${movieName}.mp4`; // Use movieName for filename
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    window.URL.revokeObjectURL(url);
+                    showSuccess('Download started!');
+                } else {
+                    const data = await res.json();
+                    showError(data.msg);
+                }
+            } catch (error) {
+                showError('Download failed: ' + error.message);
+            }
+        }
+
         function handleResponse(res, data, successMsg) {
             if (res.ok) {
                 token = data.token;
                 document.getElementById('auth').classList.add('hidden');
                 document.getElementById('app').classList.remove('hidden');
                 showSuccess(successMsg);
-                fetchUserVideos(); // Load user's videos on login/signup
+                fetchUserVideos();
             } else {
                 showError(data.msg || 'Request failed');
             }
@@ -195,7 +220,7 @@
                 li.className = 'video-item';
                 li.innerHTML = `
                     <strong>${video.movieName}</strong> (Tags: ${video.tags.join(', ')})<br>
-                    <a href="/uploads/${video.filePath.split('/')[1]}" download>Download</a> |
+                    <button onclick="downloadVideo('${video._id}', '${video.movieName}')">Download</button> |
                     <button onclick="likeVideo('${video._id}')">Like (${video.likes.length})</button> |
                     <input type="text" id="comment-${video._id}" placeholder="Add comment">
                     <button onclick="commentVideo('${video._id}')">Comment</button>
@@ -212,7 +237,7 @@
                 });
                 const data = await res.json();
                 if (res.ok) {
-                    fetchUserVideos(); // Refresh list
+                    fetchUserVideos();
                 } else {
                     showError(data.msg);
                 }
