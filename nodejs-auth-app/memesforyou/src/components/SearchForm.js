@@ -2,11 +2,13 @@ import React, { useState } from 'react';
 
 function SearchForm({ api, setResults }) {
   const [searchQuery, setSearchQuery] = useState('');
+  const [tags, setTags] = useState('');
+  const [sortBy, setSortBy] = useState('');
   const [message, setMessage] = useState('');
 
   const search = async () => {
     try {
-      const res = await api.get(`/memes/search?movieName=${searchQuery}`);
+      const res = await api.get(`/memes/search?movieName=${searchQuery}&tags=${tags}&sortBy=${sortBy}`);
       setResults(res.data);
       setMessage('Search results loaded!');
     } catch (error) {
@@ -46,6 +48,18 @@ function SearchForm({ api, setResults }) {
         onChange={(e) => setSearchQuery(e.target.value)}
         style={inputStyles}
       />
+      <input
+        type="text"
+        placeholder="Tags (comma-separated)"
+        value={tags}
+        onChange={(e) => setTags(e.target.value)}
+        style={inputStyles}
+      />
+      <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} style={inputStyles}>
+        <option value="">Sort By</option>
+        <option value="likes">Most Likes</option>
+        <option value="views">Most Views</option>
+      </select>
       <button onClick={search} style={buttonStyles}>Search</button>
       <p style={messageStyles}>{message}</p>
     </div>

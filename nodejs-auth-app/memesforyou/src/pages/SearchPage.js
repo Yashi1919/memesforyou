@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import SearchForm from '../components/SearchForm';
-import VideoList from '../components/VideoList'; // Add this import
+import VideoList from '../components/VideoList';
 
 function SearchPage({ api }) {
   const [results, setResults] = useState({ folders: [], videos: [] });
@@ -32,7 +32,7 @@ function SearchPage({ api }) {
           <p>{folder.videos.length} videos</p>
         </div>
       ))}
-      <h3>Videos (No Folder)</h3>
+      <h3>Videos</h3>
       <VideoList api={api} videos={results.videos} setVideos={(videos) => setResults({ ...results, videos })} />
     </div>
   );

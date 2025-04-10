@@ -6,9 +6,10 @@ import SignupPage from './pages/SignUpPage';
 import UploadPage from './pages/UploadPage';
 import SearchPage from './pages/SearchPage';
 import VideoPage from './pages/VideoPage';
+import ProfilePage from './pages/ProfilePage'; // New page
 
 function App() {
-  const [token, setToken] = useState(null);
+  const [token, setToken] = useState(localStorage.getItem('token')); // Persist token
   const navigate = useNavigate();
   const api = axios.create({
     baseURL: 'http://localhost:5000/api',
@@ -53,6 +54,7 @@ function App() {
                     <Route path="/upload" element={<UploadPage api={api} />} />
                     <Route path="/search" element={<SearchPage api={api} />} />
                     <Route path="/videos" element={<VideoPage api={api} />} />
+                    <Route path="/profile" element={<ProfilePage api={api} />} />
                   </Routes>
                 </div>
               </div>
@@ -122,6 +124,7 @@ function Sidebar({ logout }) {
           <li><Link to="/search" style={navLinkStyles}>Search</Link></li>
           <li><Link to="/upload" style={navLinkStyles}>Upload</Link></li>
           <li><Link to="/videos" style={navLinkStyles}>My Videos</Link></li>
+          <li><Link to="/profile" style={navLinkStyles}>Profile</Link></li>
           <li><button onClick={logout} style={logoutButtonStyles}>Logout</button></li>
         </ul>
       </nav>

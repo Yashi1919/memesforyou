@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 
 function UploadForm({ api, folders, setFolders }) {
-  const [uploadData, setUploadData] = useState({ movieName: '', tags: '', video: null, folderId: '' });
+  const [uploadData, setUploadData] = useState({ movieName: '', tags: '', video: null, folderId: '', isPublic: true });
   const [newFolderName, setNewFolderName] = useState('');
   const [message, setMessage] = useState('');
 
@@ -22,11 +22,12 @@ function UploadForm({ api, folders, setFolders }) {
     formData.append('tags', uploadData.tags);
     formData.append('video', uploadData.video);
     if (uploadData.folderId) formData.append('folderId', uploadData.folderId);
+    formData.append('isPublic', uploadData.isPublic);
 
     try {
       await api.post('/memes/upload', formData);
       setMessage('Video uploaded!');
-      setUploadData({ movieName: '', tags: '', video: null, folderId: '' });
+      setUploadData({ movieName: '', tags: '', video: null, folderId: '', isPublic: true });
     } catch (error) {
       setMessage(error.response?.data.msg || 'Upload failed');
     }
@@ -81,6 +82,14 @@ function UploadForm({ api, folders, setFolders }) {
           <option key={folder._id} value={folder._id}>{folder.name}</option>
         ))}
       </select>
+      <label>
+        <input
+          type="checkbox"
+          checked={uploadData.isPublic}
+          onChange={(e) => setUploadData({ ...uploadData, isPublic: e.target.checked })}
+        />
+        Public Video
+      </label>
       <input
         type="file"
         accept="video/mp4"
